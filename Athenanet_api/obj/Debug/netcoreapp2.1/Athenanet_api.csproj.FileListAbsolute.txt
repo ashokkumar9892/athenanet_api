@@ -1,0 +1,17 @@
+C:\Ashok\github\athenanet_api\Athenanet_api\bin\Debug\netcoreapp2.1\appsettings.Development.json
+C:\Ashok\github\athenanet_api\Athenanet_api\bin\Debug\netcoreapp2.1\appsettings.json
+C:\Ashok\github\athenanet_api\Athenanet_api\bin\Debug\netcoreapp2.1\Athenanet_api.deps.json
+C:\Ashok\github\athenanet_api\Athenanet_api\bin\Debug\netcoreapp2.1\Athenanet_api.runtimeconfig.json
+C:\Ashok\github\athenanet_api\Athenanet_api\bin\Debug\netcoreapp2.1\Athenanet_api.runtimeconfig.dev.json
+C:\Ashok\github\athenanet_api\Athenanet_api\bin\Debug\netcoreapp2.1\Athenanet_api.dll
+C:\Ashok\github\athenanet_api\Athenanet_api\bin\Debug\netcoreapp2.1\Athenanet_api.pdb
+C:\Ashok\github\athenanet_api\Athenanet_api\obj\Debug\netcoreapp2.1\Athenanet_api.AssemblyInfoInputs.cache
+C:\Ashok\github\athenanet_api\Athenanet_api\obj\Debug\netcoreapp2.1\Athenanet_api.AssemblyInfo.cs
+C:\Ashok\github\athenanet_api\Athenanet_api\obj\Debug\netcoreapp2.1\Athenanet_api.csproj.CoreCompileInputs.cache
+C:\Ashok\github\athenanet_api\Athenanet_api\obj\Debug\netcoreapp2.1\Athenanet_api.RazorAssemblyInfo.cache
+C:\Ashok\github\athenanet_api\Athenanet_api\obj\Debug\netcoreapp2.1\Athenanet_api.RazorAssemblyInfo.cs
+C:\Ashok\github\athenanet_api\Athenanet_api\obj\Debug\netcoreapp2.1\Athenanet_api.RazorTargetAssemblyInfo.cache
+C:\Ashok\github\athenanet_api\Athenanet_api\obj\Debug\netcoreapp2.1\Athenanet_api.dll
+C:\Ashok\github\athenanet_api\Athenanet_api\obj\Debug\netcoreapp2.1\Athenanet_api.pdb
+C:\Ashok\github\athenanet_api\Athenanet_api\obj\Debug\netcoreapp2.1\Athenanet_api.genruntimeconfig.cache
+C:\Ashok\github\athenanet_api\Athenanet_api\obj\Debug\netcoreapp2.1\Athenanet_api.csprojAssemblyReference.cache
