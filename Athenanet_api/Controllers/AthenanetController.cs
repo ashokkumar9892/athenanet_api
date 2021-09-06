@@ -1,4 +1,5 @@
-﻿using Auth0.AuthenticationApi;
+﻿using Athenanet_api.Model;
+using Auth0.AuthenticationApi;
 using Auth0.AuthenticationApi.Models;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
@@ -23,6 +24,7 @@ namespace Athenanet_api.Controllers
     public class AthenanetController : ControllerBase
     {
         static HttpClient client = new HttpClient();
+        string practiceid = "24451";
         // GET api/values
         [HttpGet]
         public ActionResult<IEnumerable<string>> Get()
@@ -48,7 +50,7 @@ namespace Athenanet_api.Controllers
         private async Task<string> GetToken()
         {
 
-            var result = "";
+            var token = "";
             try
             {
                 var _httpClient = new HttpClient();
@@ -75,19 +77,21 @@ namespace Athenanet_api.Controllers
                     {
                         var responseStream = response.Content.ReadAsStringAsync();
                         var r = JToken.Parse(responseStream.Result);
-                        result = r["access_token"].Value<string>();
+                        token = r["access_token"].Value<string>();
 
-                        if (result != "")
+                        if (token != "")
                         {
-                            string practiceid = "24451";
-                            GetDepartment(practiceid, result);
+                            Department _dept = GetDepartment(practiceid, token);
+
+                            // Once get department then get open slots
+                            GetOpenSlots(practiceid, _dept, token);
                         }
 
-                        return result;
+                        return token;
                     }
                     else
                     {
-                        return result;
+                        return token;
                     }
                 }
             }
@@ -116,25 +120,78 @@ namespace Athenanet_api.Controllers
         /// <param name="practiceid"></param>
         /// <param name="token"></param>
         /// <returns></returns>
-        public async Task<IActionResult> GetDepartment(string practiceid, string token)
+        public Department GetDepartment(string practiceid, string token)
         {
+            Department deptresult = new Department();
             try
             {
-                //client.BaseAddress = new Uri("https://api.preview.platform.athenahealth.com/v1/"+practiceid+"/departments");
-                client.DefaultRequestHeaders.Accept.Clear();
-                client.DefaultRequestHeaders.Accept.Add(
-                    new MediaTypeWithQualityHeaderValue("application/json"));
-                client.DefaultRequestHeaders.Add("Bearer", token);
+                var url = "https://api.preview.platform.athenahealth.com/v1/" + practiceid + "/departments";
 
-                var stringTask = client.GetStringAsync("https://api.preview.platform.athenahealth.com/v1/" + practiceid + "/departments");
+                var httpRequest = (HttpWebRequest)WebRequest.Create(url);
 
-                var msg = await stringTask;
-                return Ok(msg);
+                httpRequest.Accept = "application/json";
+                httpRequest.Headers["Authorization"] = "Bearer "+ token;
+
+               
+                var httpResponse = (HttpWebResponse)httpRequest.GetResponse();
+                using (var streamReader = new StreamReader(httpResponse.GetResponseStream()))
+                {
+                    var result = streamReader.ReadToEnd();
+                    DepartmentRoot depts = JsonConvert.DeserializeObject<DepartmentRoot>(result);
+                    // we only need department which id is 1.
+                    deptresult = depts.departments.Where(p => p.departmentid == "1").FirstOrDefault();
+
+                }
+                
+                return deptresult;
 
             }
             catch (Exception ex)
             {
-                return Ok("Failed");
+                return deptresult;
+            }
+
+        }
+
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="practiceid"></param>
+        /// <param name="departmentid"></param>
+        /// <param name="token"></param>
+        /// <returns></returns>
+        public Appointment GetOpenSlots(string practiceid, Department dept, string token)
+        {
+            Appointment apptresult = new Appointment();
+            try
+            {
+                var url = "https://api.preview.platform.athenahealth.com/v1/" + practiceid + "/appointments/open?practiceid="+practiceid+"&departmentid="+ dept.departmentid + "&reasonid=-1";
+
+                var httpRequest = (HttpWebRequest)WebRequest.Create(url);
+
+                httpRequest.Accept = "application/json";
+                httpRequest.Headers["Authorization"] = "Bearer " + token;
+
+
+                var httpResponse = (HttpWebResponse)httpRequest.GetResponse();
+                using (var streamReader = new StreamReader(httpResponse.GetResponseStream()))
+                {
+                    var result = streamReader.ReadToEnd();
+                    AppointmentRoot appt = JsonConvert.DeserializeObject<AppointmentRoot>(result);
+                    // we only need department which id is 1.
+                    apptresult = appt.appointments.FirstOrDefault();
+                    //Take 1st appt/
+
+
+                }
+
+                return apptresult;
+
+            }
+            catch (Exception ex)
+            {
+                return apptresult;
             }
 
         }
