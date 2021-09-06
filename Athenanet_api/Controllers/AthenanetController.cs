@@ -7,6 +7,7 @@ using RestSharp;
 using RestSharp.Authenticators;
 using System;
 using System.Collections.Generic;
+using System.IdentityModel.Tokens.Jwt;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -41,10 +42,59 @@ namespace Athenanet_api.Controllers
         public void Post([FromBody] IntakeRequest value)
         {
             GetToken();
-            //string practiceid = "24451";
-            //string token = "YQWa3E7k5xrDCKm2bqREtKbQ9yud";
-            //GetDepartment(practiceid, token);
+           
+        }
 
+        private async Task<string> GetToken()
+        {
+
+            var result = "";
+            try
+            {
+                var _httpClient = new HttpClient();
+
+                string requestURL = "https://api.preview.platform.athenahealth.com/oauth2/v1/token";
+
+                var content = new FormUrlEncodedContent(new Dictionary<string, string> {
+                  { "client_id", "0oa6bq032dQ8DcrwD297" },
+                  { "client_secret", "Vd5EJTpx4QD92cmTW3B_7uwPbYt2JEHAg8jfVTA6" },
+                  { "grant_type", "client_credentials" },
+                  { "scope", "athena/service/Athenanet.MDP.*" },
+                 });
+
+
+                var httpRequestMessage = new HttpRequestMessage(HttpMethod.Post, new Uri(requestURL))
+                {
+                    Content = content
+                };
+
+
+                using (var response = await _httpClient.SendAsync(httpRequestMessage))
+                {
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var responseStream = response.Content.ReadAsStringAsync();
+                        var r = JToken.Parse(responseStream.Result);
+                        result = r["access_token"].Value<string>();
+
+                        if (result != "")
+                        {
+                            string practiceid = "24451";
+                            GetDepartment(practiceid, result);
+                        }
+
+                        return result;
+                    }
+                    else
+                    {
+                        return result;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return "";
+            }
         }
 
         // PUT api/values/5
@@ -58,109 +108,15 @@ namespace Athenanet_api.Controllers
         public void Delete(int id)
         {
         }
-        public string GetToken1212()
-        {
-
-            var client = new RestClient("https://api.preview.platform.athenahealth.com/oauth2/token");
-            client.Authenticator = new HttpBasicAuthenticator("0oa6bq032dQ8DcrwD297", "Vd5EJTpx4QD92cmTW3B_7uwPbYt2JEHAg8jfVTA6");
-            var request = new RestRequest("api/oauth2/token", Method.POST);
-            request.AddHeader("content-type", "application/json");
-            request.AddParameter("application/json", "{ \"grant_type\":\"client_credentials\" }",
-            ParameterType.RequestBody);
-            var responseJson = client.Execute(request).Content;
-            var token = JsonConvert.DeserializeObject<Dictionary<string, object>>(responseJson)["access_token"].ToString();
-            if (token.Length == 0)
-            {
-               // throw new AuthenticationException("API authentication failed.");
-            }
-            return token;
-
-            //String id = "0oa6bq032dQ8DcrwD297";
-            //String secret = "Vd5EJTpx4QD92cmTW3B_7uwPbYt2JEHAg8jfVTA6";
-
-            //var client = new RestClient("https://api.preview.platform.athenahealth.com/oauth2/token");
-            //var request = new RestRequest(Method.POST);
-            //request.AddHeader("cache-control", "no-cache");
-            //request.AddHeader("content-type", "application/x-www-form-urlencoded");
-            //request.AddParameter("application/x-www-form-urlencoded", "grant_type=client_credentials&scope=all&client_id=" + id + "&client_secret=" + secret, ParameterType.RequestBody);
-            //IRestResponse response = client.Execute(request);
-
-            //dynamic resp = JObject.Parse(response.Content);
-            //String token = resp.access_token;
 
 
-            //string baseAddress = @"https://api.preview.platform.athenahealth.com/oauth2/token";
-
-            //string grant_type = "client_credentials";
-            //string client_id = "0oa6bq032dQ8DcrwD297";
-            //string client_secret = "Vd5EJTpx4QD92cmTW3B_7uwPbYt2JEHAg8jfVTA6";
-            //string client_scope = "athena/service/Athenanet.MDP.*";
-
-            //var form = new Dictionary<string, string>
-            //    {
-            //        {"grant_type", grant_type},
-            //        {"client_id", client_id},
-            //        {"client_secret", client_secret},
-            //        {"client_scope", client_scope}
-            //    };
-
-            //HttpResponseMessage tokenResponse = await client.PostAsync(baseAddress, new FormUrlEncodedContent(form));
-            //var jsonContent = await tokenResponse.Content.ReadAsStringAsync();
-            ////Token tok = JsonConvert.DeserializeObject<Token>(jsonContent);
-            return "";
-        }
-
-        private  string GetToken()
-        {
-            string wClientId = "0oa6bq032dQ8DcrwD297";
-            string wClientSecretKey = "Vd5EJTpx4QD92cmTW3B_7uwPbYt2JEHAg8jfVTA6";
-            string wAccessToken;
-
-            //--------------------------- Approch-1 to get token using HttpClient -------------------------------------------------------------------------------------
-            HttpResponseMessage responseMessage;
-            using (HttpClient client = new HttpClient())
-            {
-                HttpRequestMessage tokenRequest = new HttpRequestMessage(HttpMethod.Post, "https://api.preview.platform.athenahealth.com/oauth2/token");
-                HttpContent httpContent = new FormUrlEncodedContent(
-                        new[]
-                        {
-                                        new KeyValuePair<string, string>("grant_type", "client_credentials"),
-                        });
-                tokenRequest.Content = httpContent;
-                tokenRequest.Headers.Add("Authorization", "Basic " + Convert.ToBase64String(Encoding.Default.GetBytes(wClientId + ":" + wClientSecretKey)));
-                responseMessage = client.SendAsync(tokenRequest).Result;
-            }
-            string ResponseJSON = responseMessage.Content.ReadAsStringAsync().Result;
-
-
-            //--------------------------- Approch-2 to get token using HttpWebRequest and deserialize json object into ResponseModel class -------------------------------------------------------------------------------------
-
-
-            byte[] byte1 = Encoding.ASCII.GetBytes("grant_type=client_credentials");
-
-            HttpWebRequest oRequest = WebRequest.Create("https://localhost:1001/oauth/token") as HttpWebRequest;
-            oRequest.Accept = "application/json";
-            oRequest.Method = "POST";
-            oRequest.ContentType = "application/x-www-form-urlencoded";
-            oRequest.ContentLength = byte1.Length;
-            oRequest.KeepAlive = false;
-            oRequest.Headers.Add("Authorization", "Basic " + Convert.ToBase64String(Encoding.Default.GetBytes(wClientId + ":" + wClientSecretKey)));
-            Stream newStream = oRequest.GetRequestStream();
-            newStream.Write(byte1, 0, byte1.Length);
-
-            WebResponse oResponse = oRequest.GetResponse();
-
-            using (var reader = new StreamReader(oResponse.GetResponseStream(), Encoding.UTF8))
-            {
-                var oJsonReponse = reader.ReadToEnd();
-                ResponseModel oModel = JsonConvert.DeserializeObject<ResponseModel>(oJsonReponse);
-                wAccessToken = oModel.access_token;
-            }
-
-            return wAccessToken;
-        }
-    
-    public async Task<IActionResult> GetDepartment(string practiceid, string token)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="practiceid"></param>
+        /// <param name="token"></param>
+        /// <returns></returns>
+        public async Task<IActionResult> GetDepartment(string practiceid, string token)
         {
             try
             {
@@ -170,7 +126,7 @@ namespace Athenanet_api.Controllers
                     new MediaTypeWithQualityHeaderValue("application/json"));
                 client.DefaultRequestHeaders.Add("Bearer", token);
 
-                var stringTask = client.GetStringAsync("https://api.preview.platform.athenahealth.com/v1/"+practiceid+"/departments");
+                var stringTask = client.GetStringAsync("https://api.preview.platform.athenahealth.com/v1/" + practiceid + "/departments");
 
                 var msg = await stringTask;
                 return Ok(msg);
@@ -180,31 +136,21 @@ namespace Athenanet_api.Controllers
             {
                 return Ok("Failed");
             }
-           
+
         }
     }
 
-    public class ResponseModel
-    {
-        public string scope { get; set; }
-        public string token_type { get; set; }
-        public string expires_in { get; set; }
-        public string refresh_token { get; set; }
-        public string access_token { get; set; }
-    }
 
-    internal class Token
+
+    public class Token
     {
-        [Newtonsoft.Json.JsonProperty("access_token")]
+        [JsonProperty("access_token")]
         public string AccessToken { get; set; }
 
-        [JsonProperty("token_type")]
-        public string TokenType { get; set; }
 
         [JsonProperty("expires_in")]
         public int ExpiresIn { get; set; }
 
-        [JsonProperty("refresh_token")]
-        public string RefreshToken { get; set; }
+
     }
 }
