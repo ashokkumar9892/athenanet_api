@@ -43,11 +43,18 @@ namespace Athenanet_api.Controllers
         [HttpPost]
         public void Post([FromBody] IntakeRequest value)
         {
-            GetToken();
+            value.Firstname = "asdasd";
+            value.Lastname = "asdasd";
+            value.Dob = "01/01/1980";
+            value.Email = "01/01/1980";
+            value.Gurantoremail = "01/01/1980";
+            value.Ssn = "123456789";
+
+            GetToken(value);
            
         }
 
-        private async Task<string> GetToken()
+        private async Task<string> GetToken(IntakeRequest value)
         {
 
             var token = "";
@@ -84,7 +91,10 @@ namespace Athenanet_api.Controllers
                             Department _dept = GetDepartment(practiceid, token);
 
                             // Once get department then get open slots
-                            GetOpenSlots(practiceid, _dept, token);
+                            Appointment appt=  GetOpenSlots(practiceid, _dept, token);
+
+                            //Create Patient
+                            CreatePatient(value, practiceid, _dept.departmentid, appt.appointmentid, token);
                         }
 
                         return token;
@@ -184,6 +194,118 @@ namespace Athenanet_api.Controllers
                     //Take 1st appt/
 
 
+                }
+
+                return apptresult;
+
+            }
+            catch (Exception ex)
+            {
+                return apptresult;
+            }
+
+        }
+
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="practiceid"></param>
+        /// <param name="dept"></param>
+        /// <param name="token"></param>
+        /// <returns></returns>
+        public async Task<Patient> CreatePatient(IntakeRequest request, string practiceid, string deptId,int  appointmentid, string token)
+        {
+            Patient apptresult = new Patient();
+            try
+            {
+                var postData = new List<KeyValuePair<string, string>>();
+                postData.Add(new KeyValuePair<string, string>("firstname", request.Firstname));
+                postData.Add(new KeyValuePair<string, string>("lastname", request.Lastname));
+                postData.Add(new KeyValuePair<string, string>("departmentid", deptId));
+                postData.Add(new KeyValuePair<string, string>("dob", request.Dob));
+                postData.Add(new KeyValuePair<string, string>("email", request.Email));
+                postData.Add(new KeyValuePair<string, string>("guarantoremail", request.Gurantoremail));
+                postData.Add(new KeyValuePair<string, string>("ssn", request.Ssn));
+
+                string url = "https://api.preview.platform.athenahealth.com/v1/"+practiceid+"/patients";
+                using (var httpClient = new HttpClient())
+                {
+                    using (var content = new FormUrlEncodedContent(postData))
+                    {
+                        content.Headers.Clear();
+                        //content.Headers.add(["Authorization"] = "Bearer " + token;
+                        httpClient.DefaultRequestHeaders.Authorization =
+    new AuthenticationHeaderValue("Bearer", token);
+                        content.Headers.Add("Content-Type", "application/x-www-form-urlencoded");
+
+                        HttpResponseMessage response = await httpClient.PostAsync(url, content);
+
+                        var result = response.Content.ReadAsStringAsync();
+
+                        List<Patient> patient = JsonConvert.DeserializeObject<List<Patient>>(result.Result.ToString());
+
+                        if (patient[0] != null)
+                        {
+                            //Boom Appt.
+                            await BookAppointment(request, patient[0].patientid, deptId, appointmentid, token);
+                        }
+                    }
+                }
+
+                return apptresult;
+
+            }
+            catch (Exception ex)
+            {
+                return apptresult;
+            }
+
+        }
+
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="request"></param>
+        /// <param name="practiceid"></param>
+        /// <param name="deptId"></param>
+        /// <param name="token"></param>
+        /// <returns></returns>
+        public async Task<Patient> BookAppointment(IntakeRequest request, string patientid, string deptId,int appointmentid, string token)
+        {
+            Patient apptresult = new Patient();
+            try
+            {
+                var postData = new List<KeyValuePair<string, string>>();
+                postData.Add(new KeyValuePair<string, string>("patientid", patientid));
+                postData.Add(new KeyValuePair<string, string>("appointmenttypeid", "61"));
+                postData.Add(new KeyValuePair<string, string>("appointmentid", appointmentid.ToString()));
+                postData.Add(new KeyValuePair<string, string>("departmentid", deptId));
+                postData.Add(new KeyValuePair<string, string>("ignoreschedulablepermission", "true"));
+                
+                string url = "https://api.preview.platform.athenahealth.com/v1/"+practiceid+"/appointments/"+ appointmentid;
+                using (var httpClient = new HttpClient())
+                {
+                    using (var content = new FormUrlEncodedContent(postData))
+                    {
+                        content.Headers.Clear();
+                        //content.Headers.add(["Authorization"] = "Bearer " + token;
+                        httpClient.DefaultRequestHeaders.Authorization =
+    new AuthenticationHeaderValue("Bearer", token);
+                        content.Headers.Add("Content-Type", "application/x-www-form-urlencoded");
+
+                        HttpResponseMessage response = await httpClient.PostAsync(url, content);
+
+                        var result = response.Content.ReadAsStringAsync();
+
+                        Patient patient = JsonConvert.DeserializeObject<Patient>(result.ToString());
+
+                        if (patient != null)
+                        {
+                            //Boom Appt.
+                        }
+                    }
                 }
 
                 return apptresult;
