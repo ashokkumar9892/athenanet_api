@@ -25,6 +25,9 @@ namespace Athenanet_api.Controllers
     {
         static HttpClient client = new HttpClient();
         string practiceid = "24451";
+
+        Department department;
+        Appointment appointment; 
         // GET api/values
         [HttpGet]
         public ActionResult<IEnumerable<string>> Get()
@@ -41,23 +44,19 @@ namespace Athenanet_api.Controllers
 
         // POST api/values
         [HttpPost]
-        public void Post([FromBody] IntakeRequest value)
+        public async Task<ActionResult> Post([FromBody] IntakeRequest value)
         {
-            value.Firstname = "asdasd";
-            value.Lastname = "asdasd";
-            value.Dob = "01/01/1980";
-            value.Email = "01/01/1980";
-            value.Gurantoremail = "01/01/1980";
-            value.Ssn = "123456789";
-
-            GetToken(value);
-           
+            department = new Department();
+            appointment = new Appointment();
+            string result = await GetToken(value);
+            return Ok(result);
         }
 
         private async Task<string> GetToken(IntakeRequest value)
         {
 
             var token = "";
+            string result = "";
             try
             {
                 var _httpClient = new HttpClient();
@@ -88,16 +87,34 @@ namespace Athenanet_api.Controllers
 
                         if (token != "")
                         {
-                            Department _dept = GetDepartment(practiceid, token);
+                           string deptResult = await  GetDepartment(practiceid, token);
+                            if (deptResult == "")
+                            {
 
-                            // Once get department then get open slots
-                            Appointment appt=  GetOpenSlots(practiceid, _dept, token);
+                                // Once get department then get open slots
+                                string aptResult  = await GetOpenSlots(practiceid, department, token);
 
-                            //Create Patient
-                            CreatePatient(value, practiceid, _dept.departmentid, appt.appointmentid, token);
+                                if (aptResult == "")
+                                {
+                                  string patientResult = await  CreatePatient(value, practiceid, department.departmentid, appointment.appointmentid, token);
+                                    result = patientResult;
+                                    return result;
+                                }//Create Patient
+                                else
+                                {
+                                    result = aptResult;
+                                    return result;
+                                }
+                                
+                            }
+                            else
+                            {
+                                result = deptResult;
+                                return result;
+                            }
                         }
 
-                        return token;
+                        return result;
                     }
                     else
                     {
@@ -107,7 +124,7 @@ namespace Athenanet_api.Controllers
             }
             catch (Exception ex)
             {
-                return "";
+                return ex.Message;
             }
         }
 
@@ -130,7 +147,7 @@ namespace Athenanet_api.Controllers
         /// <param name="practiceid"></param>
         /// <param name="token"></param>
         /// <returns></returns>
-        public Department GetDepartment(string practiceid, string token)
+        public async Task<string> GetDepartment(string practiceid, string token)
         {
             Department deptresult = new Department();
             try
@@ -152,13 +169,13 @@ namespace Athenanet_api.Controllers
                     deptresult = depts.departments.Where(p => p.departmentid == "1").FirstOrDefault();
 
                 }
-                
-                return deptresult;
+                department.departmentid = deptresult.departmentid;
+                return "";
 
             }
             catch (Exception ex)
             {
-                return deptresult;
+                return ex.Message;
             }
 
         }
@@ -171,7 +188,7 @@ namespace Athenanet_api.Controllers
         /// <param name="departmentid"></param>
         /// <param name="token"></param>
         /// <returns></returns>
-        public Appointment GetOpenSlots(string practiceid, Department dept, string token)
+        public async Task<string> GetOpenSlots(string practiceid, Department dept, string token)
         {
             Appointment apptresult = new Appointment();
             try
@@ -192,16 +209,16 @@ namespace Athenanet_api.Controllers
                     // we only need department which id is 1.
                     apptresult = appt.appointments.FirstOrDefault();
                     //Take 1st appt/
-
+                    appointment = apptresult;
 
                 }
 
-                return apptresult;
+                return "";
 
             }
             catch (Exception ex)
             {
-                return apptresult;
+                return ex.Message;
             }
 
         }
@@ -214,9 +231,10 @@ namespace Athenanet_api.Controllers
         /// <param name="dept"></param>
         /// <param name="token"></param>
         /// <returns></returns>
-        public async Task<Patient> CreatePatient(IntakeRequest request, string practiceid, string deptId,int  appointmentid, string token)
+        public async Task<string> CreatePatient(IntakeRequest request, string practiceid, string deptId,int  appointmentid, string token)
         {
-            Patient apptresult = new Patient();
+            Patient patientresult = new Patient();
+            string results = "";
             try
             {
                 var postData = new List<KeyValuePair<string, string>>();
@@ -242,23 +260,30 @@ namespace Athenanet_api.Controllers
                         HttpResponseMessage response = await httpClient.PostAsync(url, content);
 
                         var result = response.Content.ReadAsStringAsync();
-
-                        List<Patient> patient = JsonConvert.DeserializeObject<List<Patient>>(result.Result.ToString());
-
-                        if (patient[0] != null)
+                        try
                         {
-                            //Boom Appt.
-                            await BookAppointment(request, patient[0].patientid, deptId, appointmentid, token);
+                            List<Patient> patient = JsonConvert.DeserializeObject<List<Patient>>(result.Result.ToString());
+
+                            if (patient[0] != null)
+                            {
+                                //Boom Appt.
+                                string confirmation = await BookAppointment(request, patient[0].patientid, deptId, appointmentid, token);
+                                results = confirmation;
+                            }
+                        }catch(Exception ex)
+                        {
+                            results = result.Result.ToString();
+                            return results;
                         }
                     }
                 }
 
-                return apptresult;
+                return results;
 
             }
             catch (Exception ex)
             {
-                return apptresult;
+                return ex.Message;
             }
 
         }
@@ -272,9 +297,10 @@ namespace Athenanet_api.Controllers
         /// <param name="deptId"></param>
         /// <param name="token"></param>
         /// <returns></returns>
-        public async Task<Patient> BookAppointment(IntakeRequest request, string patientid, string deptId,int appointmentid, string token)
+        public async Task<string> BookAppointment(IntakeRequest request, string patientid, string deptId,int appointmentid, string token)
         {
-            Patient apptresult = new Patient();
+            ApptConfirmation apptresult = new ApptConfirmation();
+            string confirmationresult = "";
             try
             {
                 var postData = new List<KeyValuePair<string, string>>();
@@ -295,25 +321,30 @@ namespace Athenanet_api.Controllers
     new AuthenticationHeaderValue("Bearer", token);
                         content.Headers.Add("Content-Type", "application/x-www-form-urlencoded");
 
-                        HttpResponseMessage response = await httpClient.PostAsync(url, content);
+                        HttpResponseMessage response = await httpClient.PutAsync(url, content);
 
                         var result = response.Content.ReadAsStringAsync();
 
-                        Patient patient = JsonConvert.DeserializeObject<Patient>(result.ToString());
+                        List<ApptConfirmation> confirmation = JsonConvert.DeserializeObject<List<ApptConfirmation>>(result.Result.ToString());
 
-                        if (patient != null)
+                        if (confirmation != null)
                         {
+                            ApptConfirmation confirm = new ApptConfirmation();
+                            confirm = confirmation[0];
+                            confirmationresult = "You confirmation Details :" + confirm.date + " Appointmentid: " + confirm.appointmentid + " Appointmentstatus: " + confirm.appointmentstatus; ;
+                            return confirmationresult;
+
                             //Boom Appt.
                         }
                     }
                 }
 
-                return apptresult;
+                return confirmationresult;
 
             }
             catch (Exception ex)
             {
-                return apptresult;
+                return ex.Message;
             }
 
         }
