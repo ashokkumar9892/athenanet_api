@@ -282,7 +282,7 @@ namespace Athenanet_api.Controllers
                 postData.Add(new KeyValuePair<string, string>("appointmenttypeid", "61"));
                 postData.Add(new KeyValuePair<string, string>("appointmentid", appointmentid.ToString()));
                 postData.Add(new KeyValuePair<string, string>("departmentid", deptId));
-                postData.Add(new KeyValuePair<string, string>("ignoreschedulablepermission", "true"));
+                //postData.Add(new KeyValuePair<string, string>("ignoreschedulablepermission", "true"));
                 
                 string url = "https://api.preview.platform.athenahealth.com/v1/"+practiceid+"/appointments/"+ appointmentid;
                 using (var httpClient = new HttpClient())
